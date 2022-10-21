@@ -1,4 +1,4 @@
-import express, { Request, Response, NextFunction } from "express";
+import express, { Request, Response, NextFunction, request, response } from "express";
 import { v4 as uuidv4 } from "uuid";
 
 const app = express();
@@ -71,7 +71,10 @@ app.get("/statement", verifyIfExistAccount, (request, response) => {
   // @ts-ignore
   const { customer } = request;
 
-  return response.json(customer.statement);
+  return response.json({
+    statement: customer.statement,
+    balance: getBalance(customer.statement)
+  });
 });
 
 app.post("/deposit", verifyIfExistAccount, (request, response) => {
@@ -112,6 +115,20 @@ app.post("/withdraw", verifyIfExistAccount, (request, response) => {
   customer.statement.push(statementOperation);
 
   return response.status(201).send();
+});
+
+app.get("/statement/date", verifyIfExistAccount, (request, response) => {
+  const { customer } = request;
+  const { date } = request.query;
+
+  const dateFormat = new Date(date + " 00:00");
+
+  const statement = customer.statement.filter((statement) => statement.created_at.toDateString() === new Date(dateFormat).toDateString())
+
+  return response.json({
+    statement: customer.statement,
+    balance: getBalance(customer.statement)
+  });
 });
 
 app.listen(3333);

@@ -5,11 +5,18 @@ const app = express();
 app.use(express.json());
 const customers:Array<ICustomer> = [];
 
+interface IOperation {
+  description: string; 
+  amount: number;
+  created_at: string;
+  type: string;
+}
+
 interface ICustomer {
   name: string;
   email: string;
   id: string;
-  statement: Array<any>
+  statement: Array<IOperation>
 };
 
 // Middleware
@@ -25,6 +32,18 @@ function verifyIfExistAccount(request: Request, response: Response, next: NextFu
   request.customer = customer;
 
   return next();
+}
+
+function getBalance(statement: Array<IOperation>) {
+  const balance = statement.reduce((acc, operation) => {
+    if(operation.type === 'credit') {
+      return acc + operation.amount;
+    } else {
+      return acc - operation.amount;
+    }
+  }, 0);
+
+  return balance;
 }
 
 app.post("/account", (request, response) => {
@@ -65,6 +84,29 @@ app.post("/deposit", verifyIfExistAccount, (request, response) => {
     amount,
     created_at: new Date(),
     type: "credit"
+  };
+
+  customer.statement.push(statementOperation);
+
+  return response.status(201).send();
+});
+
+app.post("/withdraw", verifyIfExistAccount, (request, response) => {
+  // @ts-ignore
+  const { customer } = request;
+  const { description, amount } = request.body;
+
+  const balance = getBalance(customer.statement);
+
+  if(balance < amount) {
+    return response.status(400).json({error: "Insufficient funds!"})
+  }
+
+  const statementOperation = {
+    description, 
+    amount,
+    created_at: new Date(),
+    type: "debit"
   };
 
   customer.statement.push(statementOperation);

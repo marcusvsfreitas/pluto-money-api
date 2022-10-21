@@ -8,7 +8,7 @@ const customers:Array<ICustomer> = [];
 interface IOperation {
   description: string; 
   amount: number;
-  created_at: string;
+  created_at: Date;
   type: string;
 }
 
@@ -118,15 +118,17 @@ app.post("/withdraw", verifyIfExistAccount, (request, response) => {
 });
 
 app.get("/statement/date", verifyIfExistAccount, (request, response) => {
+    // @ts-ignore
   const { customer } = request;
   const { date } = request.query;
 
   const dateFormat = new Date(date + " 00:00");
 
-  const statement = customer.statement.filter((statement) => statement.created_at.toDateString() === new Date(dateFormat).toDateString())
+  const statement:Array<IOperation> = customer.statement.filter((statement: IOperation) => statement.created_at.toDateString() === new Date(dateFormat).toDateString())
 
   return response.json({
-    statement: customer.statement,
+    statement: statement,
+    balanceDate: getBalance(statement),
     balance: getBalance(customer.statement)
   });
 });
